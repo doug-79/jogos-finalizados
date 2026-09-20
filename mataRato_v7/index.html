@@ -1,0 +1,267 @@
+<!DOCTYPE html><html><head><title>mataRato</title><meta http-equiv="content-type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui=1"><meta charset="UTF-8"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="description" content=""><link rel="manifest" href="manifest.json"><link rel="icon" type="image/png" href="icon64.png"><link rel="apple-touch-icon" sizes="180x180" href="icon180.png"><link rel="icon" type="image/png" sizes="32x32" href="icon32.png"><link rel="icon" type="image/png" sizes="16x16" href="icon16.png"><style>html,body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  overflow:hidden;
+  font-family: Verdana;
+}
+.noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+#canvaswrapper {
+  text-align: center ;
+}
+</style><style>@font-face { font-family: "BitCell" ; src: url("fonts/BitCell.ttf") format("truetype"); }</style><script>window.fonts = ["BitCell"]</script></head><body class="noselect custom-cursor" oncontextmenu="return false;"><div id="canvaswrapper"></div><script type="text/javascript">var resources = {"images":[{"file":"icon.png","version":0,"size":0,"properties":{}},{"file":"r_sprite_0.png","version":3,"size":154,"properties":{"frames":1,"fps":5}},{"file":"r_sprite_1.png","version":5,"size":158,"properties":{"frames":1,"fps":5}},{"file":"sprite_0.png","version":1,"size":279,"properties":{}},{"file":"sprite_1.png","version":1,"size":277,"properties":{}},{"file":"sprite_2.png","version":1,"size":288,"properties":{}},{"file":"sprite_3.png","version":1,"size":291,"properties":{}}],"assets":[],"maps":{},"sounds":[{"file":"boom.wav","version":1,"size":17200,"properties":{}},{"file":"punch.wav","version":1,"size":4176,"properties":{}}],"music":[{"file":"crickets.mp3","version":1,"size":61808,"properties":{}},{"file":"theme.mp3","version":1,"size":1283983,"properties":{}}]};
+var graphics = "M1";
+
+</script><script type="text/javascript">var orientation = 'any' ;
+var aspect = 'free' ;
+var ms_libs = [] ;
+window.skip_service_worker = true;
+window.exported_project = true;
+window.ms_use_server = false ;
+</script><script src="compiler.js"></script><script src="parser.js"></script><script src="processor.js"></script><script src="program.js"></script><script src="routine.js"></script><script src="runner.js"></script><script src="token.js"></script><script src="tokenizer.js"></script><script src="transpiler.js"></script><script src="microengine.js"></script></body><script type="text/javascript">//
+//
+// The game is started with the code below.
+// Once you have received the "started" signal (see below),
+// you can do the following:
+// 1) Inject functions or objects into the global context of the microStudio engine, example:
+//
+//   window.player.setGlobal("special_callback",function(x) { console.info(x) }) ;
+//   // Your microScript code can now call the "special_callback" function
+//
+// 2) Call microScript global functions from your JavaScript code, example:
+//
+//   window.player.call("call_me_from_javascript",[10,1000]) ;
+//   // arguments to the function call are provided as an array
+//
+// 3) Run a microScript code snippet from your JavaScript code, example:
+//
+//   window.player.exec("player.position_x = 50",function(result) { console.log(result) ; }) ;
+//
+
+window.addEventListener("load",function() {
+  window.player = new Player(function(event) {
+    if (event.name == "started") {
+      // signal that the game is started
+    }
+    else if (event.name == "log") {
+      // console.info(event.data) ;
+    }
+  }) ;
+  document.body.focus() ;
+}) ;
+
+</script><script id="code" type="text/x-microscript">
+
+
+function()
+init = function()
+  // Jogador
+  player_x = 0
+  player_y = 0
+  velocidade = 2
+  sprite_atual = "sprite_0" 
+  anim_timer = 0
+  esta_andando = false
+  olhando_para = 1 
+  
+  // Sistema de Vida
+  vidas = 5
+  game_over = false
+  invencivel_timer = 0 
+
+  // Ataque
+  esta_atacando = false
+  ataque_timer = 0
+
+  // Sistema de Progressão e Pontos
+  pontos = 0
+  velocidade_base_rato = 1 
+
+  // Sistema de Cor de Fundo
+  cor_fundo = "#000000"
+
+  // INIMIGO: Rato
+  rato_x = 0 
+  rato_y = 0
+  rato_olhando = -1
+  rato_sprite = "r_sprite_0"
+  rato_timer = 0
+  rato_vivo = true
+  
+  resgatarRato()
+
+  // VARIÁVEIS DE ÁUDIO (HTML5 Seguro para Linux/Chrome)
+  musica_tema = nil
+  musica_grilos = nil
+  audios_iniciados = false
+end
+
+update = function()
+  if game_over then
+    if keyboard.ENTER then
+      init() 
+    end
+    return
+  end
+
+  // ATIVAÇÃO GERAL DE ÁUDIO: Libera as músicas no primeiro movimento
+  if not audios_iniciados then
+    if keyboard.LEFT or keyboard.RIGHT or keyboard.SPACE or touch.touching then
+      musica_tema = audio.playMusic("theme")
+      musica_grilos = audio.playMusic("crikets")
+      audios_iniciados = true
+    end
+  end
+
+  if invencivel_timer > 0 then
+    invencivel_timer = invencivel_timer - 1
+  end
+
+  // Lógica do Rato
+  if rato_vivo then
+    rato_x = rato_x + (velocidade_base_rato * rato_olhando)
+    
+    rato_timer = rato_timer + 1
+    if rato_timer % 20 < 10 then
+      rato_sprite = "r_sprite_0"
+    else
+      rato_sprite = "r_sprite_1"
+    end
+
+    // Colisão do rato com o jogador
+    if invencivel_timer == 0 and abs(player_x - rato_x) < 15 and abs(player_y - rato_y) < 15 then
+      vidas = vidas - 1
+      invencivel_timer = 60 
+      resgatarRato()        
+      
+      if vidas <= 0 then
+        game_over = true
+        // CORREÇÃO DO ERRO DA IMAGEM: Formato correto para parar a música no Micro Studio
+        if musica_tema then musica_tema.stop() end
+        if musica_grilos then musica_grilos.stop() end
+      end
+    end
+
+    if rato_x > 200 or rato_x < -200 then
+      resgatarRato()
+    end
+  else
+    resgatarRato()
+  end
+
+  // Ataque do jogador (Espaço)
+  if keyboard.SPACE and not esta_atacando then
+    esta_atacando = true
+    ataque_timer = 0
+    
+    // FORMATO SIMPLIFICADO: Melhor compatibilidade com Chrome no Linux Mint
+    audio.playSound("punch")
+    
+    if rato_vivo and abs(player_x - rato_x) < 25 and abs(player_y - rato_y) < 25 then
+      rato_vivo = false
+      pontos = pontos + 1 
+      
+      if pontos % 10 == 0 then
+        velocidade_base_rato = velocidade_base_rato * 1.2
+        mudarCorDeFundo()
+      end
+    end
+  end
+
+  // Animação de ataque
+  if esta_atacando then
+    ataque_timer = ataque_timer + 1
+    if ataque_timer < 10 then
+      sprite_atual = "sprite_2"
+    elsif ataque_timer < 20 then
+      sprite_atual = "sprite_3"
+    else
+      esta_atacando = false
+      sprite_atual = "sprite_0"
+    end
+  else
+    // Movimentação
+    esta_andando = false
+
+    if keyboard.LEFT then
+      player_x = player_x - velocidade
+      esta_andando = true
+      olhando_para = -1
+    end
+    if keyboard.RIGHT then
+      player_x = player_x + velocidade
+      esta_andando = true
+      olhando_para = 1
+    end
+
+    // Animação de andar
+    if esta_andando then
+      anim_timer = anim_timer + 1
+      if anim_timer % 20 < 10 then
+        sprite_atual = "sprite_0"
+      else
+        sprite_atual = "sprite_1"
+      end
+    else
+      sprite_atual = "sprite_0"
+      anim_timer = 0
+    end
+  end
+end
+
+resgatarRato = function()
+  rato_vivo = true
+  if random.next() < 0.5 then
+    rato_x = -180       
+    rato_olhando = 1    
+  else
+    rato_x = 180        
+    rato_olhando = -1   
+  end
+end
+
+mudarCorDeFundo = function()
+  local cores = ["#1a2a3a", "#2c1a3a", "#1a3a2a", "#3a2a1a", "#202020", "#103040", "#401020"]
+  local indice = floor(random.next() * cores.length)
+  cor_fundo = cores[indice]
+end
+
+draw = function()
+  screen.fillRect(0, 0, screen.width, screen.height, cor_fundo)
+  
+  if game_over then
+    screen.drawText("GAME OVER", 0, 20, 30, "#FF0000")
+    screen.drawText("Acertos totais: " + pontos, 0, -20, 16, "#FFF")
+    screen.drawText("Aperte ENTER para reiniciar", 0, -50, 12, "#AAA")
+    return
+  end
+
+  // DESENHA O RATO
+  if rato_vivo then
+    screen.setDrawScale(-rato_olhando, 1)
+    screen.drawSprite(rato_sprite, rato_x, rato_y, 20, 20)
+  end
+  
+  // DESENHA O JOGADOR
+  if invencivel_timer % 8 < 4 then
+    screen.setDrawScale(olhando_para, 1)
+    screen.drawSprite(sprite_atual, player_x, player_y, 20, 20)
+  end
+  screen.setDrawScale(1, 1)
+  
+  // INTERFACE
+  screen.drawText("VIDAS: " + vidas, -120, 85, 14, "#FF5555")
+  screen.drawText("ACERTOS: " + pontos, 100, 85, 14, "#55FF55")
+end
+
+end()
+
+
+</script></html>
